@@ -310,34 +310,45 @@ namespace RaceTo21
                 }
             }
 
+            if (playersToContinue.Count == 0) // no one wants too play
+            {
+                Console.WriteLine("no player, game over.");
+                Environment.Exit(0); 
+            }
+
             //If only one player remains, automatically declare that player as the winner
             if (players.Count == 1)
             {
                 Player winner = players[0];
                 cardTable.AnnounceWinner(winner);
-                //nextTask = Task.GameOver;
-                players.Clear(); // Clear the list of players, ready to receive new players
-                deck = new Deck();
-                deck.Shuffle();
-                nextTask = Task.GetNumberOfPlayers;
+                Console.WriteLine("Since there is only one player in the game, that player automatically becomes the winner.");
+
+                Console.WriteLine("Do you want to restart the game？(Y/N)");
+                string response = Console.ReadLine().ToUpper();
+
+                if (response == "Y")
+                {
+                    Console.WriteLine("Game start.");
+                    players.Clear(); 
+                    deck = new Deck();
+                    deck.Shuffle();
+                    nextTask = Task.GetNumberOfPlayers;
+                }
+                else
+                {
+                    Console.WriteLine("Game over.");
+                    Environment.Exit(0);
+                }
             }
 
-            else if (playersToContinue.Count > 1 && !allAgreeToContinue)
+            else if ((playersToContinue.Count > 1 && !allAgreeToContinue) || allAgreeToContinue)
             {
                 deck.Shuffle();
                 ResetPlayers();
                 players = new List<Player>(playersToContinue);
                 deck.ShowAllCards();
+                currentPlayer = 0;
                 nextTask = Task.PlayerTurn;
-            }
-
-            else if (allAgreeToContinue)
-            {
-                deck.Shuffle();
-                ResetPlayers();
-                players = new List<Player>(playersToContinue);
-                deck.ShowAllCards();
-                nextTask = Task.PlayerTurn; //Set the next task as the player's turn
             }
         }
 
