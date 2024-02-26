@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace RaceTo21
@@ -9,7 +9,7 @@ namespace RaceTo21
     /// </summary>
     public class Game
     {
-        int numberOfPlayers; // number of players in current game
+        public int NumberOfPlayers { get; private set; } // number of players in current game
         List<Player> players = new List<Player>(); // list of objects containing player data
         CardTable cardTable; // object in charge of displaying game information
         Deck deck = new Deck(); // deck of cards
@@ -40,36 +40,42 @@ namespace RaceTo21
             players.Add(new Player(n));
         }
 
+        private void SetNumberOfPlayers(int count)
+        {
+            NumberOfPlayers = count;
+        }
+
         /// <summary>
         /// Figures out what task to do next in game as represented by field nextTask.
         /// Calls methods required to complete task then sets nextTask.
         /// </summary>
         public void DoNextTask()
         {
-            Console.WriteLine("================================"); // this line should be elsewhere right?
+            Console.WriteLine("================================");
+
             if (nextTask == Task.GetNumberOfPlayers)
             {
-                numberOfPlayers = cardTable.GetNumberOfPlayers();
+                int playerCount = cardTable.GetNumberOfPlayers();
+                SetNumberOfPlayers(playerCount); // To set the number of players using an internal method
                 nextTask = Task.GetNames;
             }
             else if (nextTask == Task.GetNames)
             {
-                for (var count = 1; count <= numberOfPlayers; count++)
+                for (var count = 1; count <= NumberOfPlayers; count++)
                 {
                     var name = cardTable.GetPlayerName(count);
-                    AddPlayer(name); // NOTE: player list will start from 0 index even though we use 1 for our count here to make the player numbering more human-friendly
+                    AddPlayer(name);
                 }
                 nextTask = Task.IntroducePlayers;
             }
             else if (nextTask == Task.IntroducePlayers)
             {
                 cardTable.ShowPlayers(players);
-                didAnyPlayerTakeACard = false; // Reset the game to a state where no player has drawn a card.
+                didAnyPlayerTakeACard = false;
                 nextTask = Task.PlayerTurn;
             }
             else if (nextTask == Task.PlayerTurn)
             {
-                
                 Player player = players[currentPlayer];
                 if (player.status == PlayerStatus.active)
                 {
@@ -83,15 +89,14 @@ namespace RaceTo21
                         if (player.score > 21)
                         {
                             player.status = PlayerStatus.bust;
+
                         }
                         else if (player.score == 21)
                         {
                             player.status = PlayerStatus.win;
-
-                            //"If the player's score reaches 21,immediately declare victory and end the game.
                             cardTable.AnnounceWinner(player);
                             nextTask = Task.GameOver;
-                            return;
+                            AskPlayersIfContinue();
                         }
                     }
                     else
@@ -104,60 +109,62 @@ namespace RaceTo21
             }
             else if (nextTask == Task.CheckForEnd)
             {
-                // End the game if no player took a card this round
                 if (!didAnyPlayerTakeACard)
                 {
-                    
-                    //Directly end the game here, or choose an appropriate ending method according to your game rules
-                    Player winner = DoFinalScoring(); 
-                    cardTable.AnnounceWinner(winner);
-                    nextTask = Task.GameOver;
-                    return; 
-                }
-
-                // Initialize counter and variable to store the last non-busted player
-                int activeOrStayingPlayers = 0;
-                Player lastStandingPlayer = null; // To record the non-busted player
-
-                // Iterate through the list of players to count non-busted players
-                foreach (var player in players)
-                {
-                    if (player.status != PlayerStatus.bust)
-                    {
-                        activeOrStayingPlayers++; // Update count of non-busted players
-                        lastStandingPlayer = player; // Record the current non-busted player
-                    }
-                }
-
-                // If there's only one player who hasn't busted, that player wins
-                if (activeOrStayingPlayers == 1 && lastStandingPlayer != null)
-                {
-                    // Set the player's status to win and announce them as the winner
-                    lastStandingPlayer.status = PlayerStatus.win;
-                    cardTable.AnnounceWinner(lastStandingPlayer);
-                    nextTask = Task.GameOver; //Update game state to end
-                }
-                else if (!CheckActivePlayers())
-                {
-                    //If there are no active players left, do final scoring and announce the winner
                     Player winner = DoFinalScoring();
                     cardTable.AnnounceWinner(winner);
-                    nextTask = Task.GameOver; // Update game state to end
+                    nextTask = Task.GameOver;
                 }
                 else
                 {
-                    // If the game hasn't ended, prepare for the next player's turn
-                    currentPlayer = (currentPlayer + 1) % players.Count; // Loop through players
-                    nextTask = Task.PlayerTurn; //Set the next task as player's turn
-                }
+                    int activeOrStayingPlayers = 0;
+                    Player lastStandingPlayer = null;
 
-                
+                    foreach (var player in players)
+                    {
+                        if (player.status != PlayerStatus.bust)
+                        {
+                            activeOrStayingPlayers++;
+                            lastStandingPlayer = player;
+                        }
+                    }
+
+                    if (activeOrStayingPlayers == 1 && lastStandingPlayer != null)
+                    {
+                        lastStandingPlayer.status = PlayerStatus.win;
+                        cardTable.AnnounceWinner(lastStandingPlayer);
+                        nextTask = Task.GameOver;
+                    }
+                    else if (!CheckActivePlayers())
+                    {
+                        Player winner = DoFinalScoring();
+                        cardTable.AnnounceWinner(winner);
+                        nextTask = Task.GameOver;
+                    }
+                    else
+                    {
+                        currentPlayer = (currentPlayer + 1) % players.Count;
+                        nextTask = Task.PlayerTurn;
+                    }
+                }
+            }
+
+            // 在游戏结束后执行询问玩家是否继续游戏的逻辑
+            if (nextTask == Task.GameOver)
+            {
+                // 先询问玩家是否继续游戏
+                AskPlayersIfContinue();
+
+                // 如果游戏结束且所有玩家都选择继续游戏，则继续游戏
                 if (nextTask == Task.GameOver)
                 {
-                    PlayAgain();
+                    // 继续游戏后需要重新进入游戏循环
+                    DoNextTask();
                 }
             }
         }
+
+
 
         /// <summary>
         /// Score the cards in the player's list of cards OR (if cheating)
@@ -272,55 +279,68 @@ namespace RaceTo21
             return null; // everyone must have busted because nobody won!
         }
 
-        private void PlayAgain()
+        private void ResetPlayers()
         {
-            Console.WriteLine("Play again? Y for Yes, N for No.");
-            string answer = Console.ReadLine().ToUpper();
-
-            if (answer == "Y")
+            foreach (var player in players)
             {
-                RestartGame();
+                player.cards.Clear();
+                player.score = 0;
+                player.status = PlayerStatus.active;
             }
-            else
-            {
-                Console.WriteLine("Game over.");
-                Environment.Exit(0);
-            }
-        }
-
-        private void RestartGame()
-        {
-            deck = new Deck();
-            deck.Shuffle(); 
-
-            var rng = new Random();
-            players.Sort((x, y) => rng.Next(-1, 2));
-
-            // Reset game state
-            currentPlayer = 0;
-            nextTask = Task.GetNumberOfPlayers;
-            didAnyPlayerTakeACard = false;
-
-            Console.WriteLine("Let's start a new game!");
-            DoNextTask();
         }
 
         private void AskPlayersIfContinue()
         {
-            for (int i = 0; i < players.Count; i++)
+            bool allAgreeToContinue = true; // Assuming everyone wants to continue
+            List<Player> playersToContinue = new List<Player>(); //To store players who want to continue
+
+            //Asking each player if they want to continue the game
+            foreach (Player player in new List<Player>(players))
             {
-                Player player = players[i];
-                if (player.status == PlayerStatus.active)
+                Console.WriteLine($"Player {player.name}, do you want to continue playing? (Y/N)");
+                string response = Console.ReadLine().ToUpper();
+                if (response == "N")
                 {
-                    Console.WriteLine($"Player {player.name}, do you want to continue playing? (Y/N)");
-                    string response = Console.ReadLine().ToUpper();
-                    if (response == "N")
-                    {
-                        players.RemoveAt(i);
-                        i--; // Adjust index since player is removed
-                    }
+                    allAgreeToContinue = false; // If anyone does not want to continue, mark as false
+                    players.Remove(player); //If a player does not want to continue, remove them from the list of players
+                }
+                else
+                {
+                    playersToContinue.Add(player);
                 }
             }
+
+            //If only one player remains, automatically declare that player as the winner
+            if (players.Count == 1)
+            {
+                Player winner = players[0];
+                cardTable.AnnounceWinner(winner);
+                //nextTask = Task.GameOver;
+                players.Clear(); // Clear the list of players, ready to receive new players
+                deck = new Deck();
+                deck.Shuffle();
+                nextTask = Task.GetNumberOfPlayers;
+            }
+
+            else if (playersToContinue.Count > 1 && !allAgreeToContinue)
+            {
+                deck.Shuffle();
+                ResetPlayers();
+                players = new List<Player>(playersToContinue);
+                deck.ShowAllCards();
+                nextTask = Task.PlayerTurn;
+            }
+
+            else if (allAgreeToContinue)
+            {
+                deck.Shuffle();
+                ResetPlayers();
+                players = new List<Player>(playersToContinue);
+                deck.ShowAllCards();
+                nextTask = Task.PlayerTurn; //Set the next task as the player's turn
+            }
         }
+
+
     }
 }
