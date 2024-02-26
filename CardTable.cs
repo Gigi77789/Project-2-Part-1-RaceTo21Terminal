@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace RaceTo21
@@ -35,7 +35,7 @@ namespace RaceTo21
             while (int.TryParse(response, out numberOfPlayers) == false
                 || numberOfPlayers < 2 || numberOfPlayers > 8)
             {
-                Console.WriteLine("Invalid number of players.");
+                Console.WriteLine("Please enter a number.");
                 Console.Write("How many players?");
                 response = Console.ReadLine();
             }
@@ -124,8 +124,11 @@ namespace RaceTo21
             {
                 Console.WriteLine("Everyone busted!");
             }
-            Console.Write("Press <Enter> to exit... ");
-            while (Console.ReadKey().Key != ConsoleKey.Enter) { }
+
+            
+            // Console.Write("Press <Enter> to exit... ");
+
+            //while (Console.ReadKey().Key != ConsoleKey.Enter) { }
         }
     }
 }
