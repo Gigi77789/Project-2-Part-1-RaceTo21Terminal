@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq; // currently only needed if we use alternate shuffle method
 
@@ -124,11 +124,76 @@ namespace RaceTo21
         /// <returns>the removed instance of Card, representing one of the 52 cards in the deck</returns>
         public Card DealTopCard()
         {
+            if (cards.Count == 0)  //if there is no card, reset cards
+            {
+                InitializeDeck();
+                Shuffle();
+            }
             Card card = cards[cards.Count - 1];
             cards.RemoveAt(cards.Count - 1);
             // Console.WriteLine("I'm giving you " + card);
             return card;
         }
+
+        private void InitializeDeck()
+        {
+            cards.Clear();
+
+            string[] suits = { "S", "H", "C", "D" };
+
+            for (int cardVal = 1; cardVal <= 13; cardVal++)
+            {
+                foreach (string cardSuit in suits)
+                {
+                    string cardName;
+                    string cardLongName;
+
+                    switch (cardVal)
+                    {
+                        case 1:
+                            cardName = "A";
+                            cardLongName = "Ace of ";
+                            break;
+                        case 11:
+                            cardName = "J";
+                            cardLongName = "Jack of ";
+                            break;
+                        case 12:
+                            cardName = "Q";
+                            cardLongName = "Queen of ";
+                            break;
+                        case 13:
+                            cardName = "K";
+                            cardLongName = "King of ";
+                            break;
+                        default:
+                            cardName = cardVal.ToString();
+                            cardLongName = cardVal.ToString() + " of ";
+                            break;
+                    }
+
+                    switch (cardSuit)
+                    {
+                        case "S":
+                            cardLongName += "Spades";
+                            break;
+                        case "H":
+                            cardLongName += "Hearts";
+                            break;
+                        case "C":
+                            cardLongName += "Clubs";
+                            break;
+                        case "D":
+                            cardLongName += "Diamonds";
+                            break;
+                    }
+                    cards.Add(new Card(cardName + cardSuit, cardLongName));
+                }
+            }
+        }
+
+
+
     }
 }
 
