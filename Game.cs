@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RaceTo21
 {
@@ -16,6 +17,7 @@ namespace RaceTo21
         int currentPlayer = 0; // current player on list
         public Task nextTask; // keeps track of game state
         private bool cheating = false; // lets you cheat for testing purposes if true
+        private Player lastRoundWinner; //At the beginning of the game, there is no winner yet.
 
         private bool didAnyPlayerTakeACard = false; //Add a variable to track whether any player has drawn a card.
         /// <summary>
@@ -88,7 +90,7 @@ namespace RaceTo21
 
                         if (player.score > 21)
                         {
-                            player.status = PlayerStatus.bust;
+                            player.status = PlayerStatus.bust;                           
 
                         }
                         else if (player.score == 21)
@@ -96,12 +98,16 @@ namespace RaceTo21
                             player.status = PlayerStatus.win;
                             cardTable.AnnounceWinner(player);
                             nextTask = Task.GameOver;
+                            
                             AskPlayersIfContinue();
+                           
+
                         }
                     }
                     else
                     {
                         player.status = PlayerStatus.stay;
+                        
                     }
                 }
                 cardTable.ShowHand(player);
@@ -113,6 +119,7 @@ namespace RaceTo21
                 {
                     Player winner = DoFinalScoring();
                     cardTable.AnnounceWinner(winner);
+                    lastRoundWinner = winner;
                     nextTask = Task.GameOver;
                 }
                 else
@@ -138,6 +145,7 @@ namespace RaceTo21
                     else if (!CheckActivePlayers())
                     {
                         Player winner = DoFinalScoring();
+                        
                         cardTable.AnnounceWinner(winner);
                         nextTask = Task.GameOver;
                     }
@@ -154,12 +162,14 @@ namespace RaceTo21
             {
                 // 先询问玩家是否继续游戏
                 AskPlayersIfContinue();
+               
 
                 // 如果游戏结束且所有玩家都选择继续游戏，则继续游戏
                 if (nextTask == Task.GameOver)
                 {
                     // 继续游戏后需要重新进入游戏循环
                     DoNextTask();
+                    
                 }
             }
         }
@@ -286,12 +296,20 @@ namespace RaceTo21
                 player.cards.Clear();
                 player.score = 0;
                 player.status = PlayerStatus.active;
+               
             }
+            if (lastRoundWinner != null && players.Contains(lastRoundWinner))
+            {
+                players.Remove(lastRoundWinner);
+                players.Add(lastRoundWinner);
+            }
+          
+            
         }
 
         private void AskPlayersIfContinue()
         {
-            bool allAgreeToContinue = true; // Assuming everyone wants to continue
+           // bool allAgreeToContinue = true; // Assuming everyone wants to continue
             List<Player> playersToContinue = new List<Player>(); //To store players who want to continue
 
             //Asking each player if they want to continue the game
@@ -301,7 +319,7 @@ namespace RaceTo21
                 string response = Console.ReadLine().ToUpper();
                 if (response == "N")
                 {
-                    allAgreeToContinue = false; // If anyone does not want to continue, mark as false
+                 //   allAgreeToContinue = false; // If anyone does not want to continue, mark as false
                     players.Remove(player); //If a player does not want to continue, remove them from the list of players
                 }
                 else
@@ -310,6 +328,7 @@ namespace RaceTo21
                 }
             }
 
+
             if (playersToContinue.Count == 0) // no one wants too play
             {
                 Console.WriteLine("no player, game over.");
@@ -317,7 +336,7 @@ namespace RaceTo21
             }
 
             //If only one player remains, automatically declare that player as the winner
-            if (players.Count == 1)
+            else if (players.Count == 1)
             {
                 Player winner = players[0];
                 cardTable.AnnounceWinner(winner);
@@ -332,6 +351,7 @@ namespace RaceTo21
                     players.Clear(); 
                     deck = new Deck();
                     deck.Shuffle();
+                    ResetPlayers();
                     nextTask = Task.GetNumberOfPlayers;
                 }
                 else
@@ -341,15 +361,30 @@ namespace RaceTo21
                 }
             }
 
-            else if ((playersToContinue.Count > 1 && !allAgreeToContinue) || allAgreeToContinue)
+            else if (playersToContinue.Count > 1)
             {
                 deck.Shuffle();
+
+                Random rng = new Random();
                 ResetPlayers();
-                players = new List<Player>(playersToContinue);
+                List<Player> shuffledPlayersToContinue = playersToContinue.OrderBy(a => rng.Next()).ToList();
+                players = new List<Player>(shuffledPlayersToContinue);
+
                 deck.ShowAllCards();
                 currentPlayer = 0;
                 nextTask = Task.PlayerTurn;
             }
+
+            /* if (playersToContinue.Contains(lastRoundWinner))
+             {
+                 // 先从列表中移除赢家
+                 playersToContinue.Remove(lastRoundWinner);
+                 // 再将赢家添加到列表的末尾
+                 playersToContinue.Add(lastRoundWinner);
+             }
+             //playersOrder = playersToContinue;
+             players = new List<Player>(playersToContinue);//Update the players list to only include players who choose to continue.
+         */
         }
 
 
